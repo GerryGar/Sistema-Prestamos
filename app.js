@@ -749,7 +749,7 @@ function generarPDFCliente(prestamoId) {
         
         doc.setDrawColor(37, 99, 235);
         doc.setLineWidth(0.5);
-        doc.rect(14, yPos, pageWidth - 28, 70);
+        doc.rect(14, yPos, pageWidth - 28, 85);
         
         yPos += 8;
         doc.setFont('helvetica', 'bold');
