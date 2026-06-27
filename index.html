@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💰 Sistema Profesional de Préstamos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --dark: #1e293b;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            letter-spacing: -0.5px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+            margin-bottom: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 50px rgba(0,0,0,0.15);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--primary), #1e40af);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 1.2rem;
+            font-weight: 600;
+        }
+        
+        .card-header-pagos {
+            background: linear-gradient(135deg, var(--success), #059669);
+        }
+        
+        .btn {
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #1e40af);
+            border: none;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #059669);
+            border: none;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+            padding: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
+        }
+        
+        .table {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .table thead {
+            background: linear-gradient(135deg, var(--dark), #334155);
+            color: white;
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: #f1f5f9;
+            cursor: pointer;
+        }
+        
+        .badge-estado {
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        
+        .estado-activo {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .estado-pagado {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .estado-moroso {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .estadisticas {
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .estadistica-item {
+            text-align: center;
+            padding: 15px;
+        }
+        
+        .estadistica-valor {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .estadistica-label {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .card {
+                margin-bottom: 15px;
+            }
+            
+            .btn {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+    <!-- Agregar después del link de Bootstrap Icons -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <!-- Agregar después de los scripts de PDF -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark mb-4">
+        <div class="container">
+            <span class="navbar-brand">
+                <i class="bi bi-cash-stack me-2"></i>
+                Sistema Profesional de Préstamos
+            </span>
+            <span class="text-white">
+                <i class="bi bi-person-circle me-2"></i>
+                Administrador
+            </span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Estadísticas -->
+        <div class="row mb-4" id="estadisticas">
+            <div class="col-md-3 col-6 mb-2">
+                <div class="estadisticas">
+                    <div class="estadistica-item">
+                        <div class="estadistica-valor" id="totalPrestamos">0</div>
+                        <div class="estadistica-label">Total Préstamos</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6 mb-2">
+                <div class="estadisticas">
+                    <div class="estadistica-item">
+                        <div class="estadistica-valor text-success" id="totalPrestado">$0</div>
+                        <div class="estadistica-label">Capital Prestado</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6 mb-2">
+                <div class="estadisticas">
+                    <div class="estadistica-item">
+                        <div class="estadistica-valor text-warning" id="totalIntereses">$0</div>
+                        <div class="estadistica-label">Intereses Generados</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6 mb-2">
+                <div class="estadisticas">
+                    <div class="estadistica-item">
+                        <div class="estadistica-valor text-info" id="totalPagado">$0</div>
+                        <div class="estadistica-label">Total Pagado</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Panel Izquierdo: Formularios -->
+            <div class="col-lg-4">
+                <!-- Formulario de Préstamo -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Nuevo Préstamo
+                    </div>
+                    <div class="card-body">
+                        <form id="formPrestamo">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-person me-2"></i>Cliente
+                                </label>
+                                <input type="text" class="form-control" id="cliente" 
+                                       placeholder="Nombre completo del cliente" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-file-text me-2"></i>Motivo del Préstamo
+                                </label>
+                                <textarea class="form-control" id="motivo" rows="2" 
+                                          placeholder="Ej: Compra de inventario, reparación de vehículo, etc."
+                                          required></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-cash me-2"></i>Monto
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="monto" 
+                                           placeholder="0.00" step="0.01" required>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-6 mb-3">
+                                    <label class="form-label fw-bold">
+                                        <i class="bi bi-percent me-2"></i>Interés Anual
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="interes" 
+                                               placeholder="0" step="0.1" required>
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-6 mb-3">
+                                    <label class="form-label fw-bold">
+                                        <i class="bi bi-calendar me-2"></i>Plazo
+                                    </label>
+                                    <select class="form-select" id="plazo">
+                                        <option value="3">3 meses</option>
+                                        <option value="6">6 meses</option>
+                                        <option value="12" selected>12 meses</option>
+                                        <option value="18">18 meses</option>
+                                        <option value="24">24 meses</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <!-- AGREGAR ESTE BLOQUE después del select de plazo -->
+                                <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                <i class="bi bi-calendar-date me-2"></i>Fecha del Préstamo
+                                </label>
+                                <input type="date" class="form-control" id="fechaPrestamo" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-check-circle me-2"></i>Registrar Préstamo
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Formulario de Pago -->
+                <div class="card">
+                    <div class="card-header card-header-pagos">
+                        <i class="bi bi-credit-card me-2"></i>
+                        Registrar Pago
+                    </div>
+                    <div class="card-body">
+                        <form id="formPago">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Préstamo</label>
+                                <select class="form-select" id="selectPrestamo" required>
+                                    <option value="">Seleccionar préstamo...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Monto del Pago</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="montoPago" 
+                                           placeholder="0.00" step="0.01" required>
+                                </div>
+                            </div>
+                                <!-- AGREGAR ESTE BLOQUE después del input de montoPago -->
+                                <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                <i class="bi bi-calendar-check me-2"></i>Fecha del Pago
+                                </label>
+                                <input type="date" class="form-control" id="fechaPago" required>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-check-lg me-2"></i>Registrar Pago
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Panel Derecho: Tablas -->
+            <div class="col-lg-8">
+                <!-- Tabla de Préstamos -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-list-ul me-2"></i>Préstamos Activos</span>
+                        <button class="btn btn-light btn-sm" onclick="exportarPDF()">
+                            <i class="bi bi-file-pdf me-1"></i>Exportar PDF
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Cliente</th>
+                                        <th>Motivo</th>
+                                        <th>Monto</th>
+                                        <th>Cuota</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaPrestamos"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tabla de Pagos Recientes -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-clock-history me-2"></i>
+                        Pagos Recientes
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Cliente</th>
+                                        <th>Monto Pagado</th>
+                                        <th>Fecha</th>
+                                        <th>Saldo Restante</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaPagos"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Al final del body, cambia el orden de los scripts -->
+        <script src="config.js"></script>
+        <script src="app.js"></script>
+</body>
+</html>
