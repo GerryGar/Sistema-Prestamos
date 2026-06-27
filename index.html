@@ -158,15 +158,103 @@
                 margin-bottom: 5px;
             }
         }
+        .graficos-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+
+        .grafico-card {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+
+        .grafico-card canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .selector-periodo {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn-periodo {
+            border-radius: 20px;
+            padding: 8px 20px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-periodo.activo {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+
+        .resumen-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .resumen-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .resumen-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .resumen-card .icono {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .resumen-card .valor {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .resumen-card .etiqueta {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .resumen-card .tendencia {
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+
+        .tendencia-positiva {
+            color: #10b981;
+        }
+
+        .tendencia-negativa {
+            color: #ef4444;
+}
     </style>
     <!-- Agregar después del link de Bootstrap Icons -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <!-- Agregar después de los scripts de PDF -->
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<!-- Agregar después de firebase-firestore-compat.js -->
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- Agregar después de firebase-firestore-compat.js -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <!-- Agregar después de las librerías de Firebase -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <nav class="navbar navbar-dark bg-dark mb-4">
@@ -187,7 +275,74 @@
         </div>
     </div>
 </nav>
+    <div class="container">
+    <!-- Nuevo: Panel de Gráficos -->
+    <div class="graficos-container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="mb-0">
+                <i class="bi bi-graph-up me-2"></i>
+                Panel de Ganancias
+            </h4>
+            <div class="selector-periodo">
+                <button class="btn btn-periodo activo" onclick="cambiarPeriodo('mes', this)">
+                    Este Mes
+                </button>
+                <button class="btn btn-periodo" onclick="cambiarPeriodo('trimestre', this)">
+                    Trimestre
+                </button>
+                <button class="btn btn-periodo" onclick="cambiarPeriodo('anio', this)">
+                    Este Año
+                </button>
+            </div>
+        </div>
+        
+        <!-- Cards de Resumen -->
+        <div class="resumen-cards" id="resumenCards">
+            <!-- Se llena dinámicamente -->
+        </div>
+        
+        <!-- Gráficos -->
+        <div class="row">
+            <div class="col-lg-8 mb-4">
+                <div class="grafico-card">
+                    <h6 class="text-muted mb-3">
+                        <i class="bi bi-cash-stack me-2"></i>
+                        Ingresos por Pagos
+                    </h6>
+                    <canvas id="graficoIngresos"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-4 mb-4">
+                <div class="grafico-card">
+                    <h6 class="text-muted mb-3">
+                        <i class="bi bi-pie-chart me-2"></i>
+                        Distribución de Préstamos
+                    </h6>
+                    <canvas id="graficoDistribucion"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="grafico-card">
+                    <h6 class="text-muted mb-3">
+                        <i class="bi bi-graph-up-arrow me-2"></i>
+                        Comparativa: Préstamos vs Pagos
+                    </h6>
+                    <canvas id="graficoComparativa"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- Estadísticas existentes (las mantenemos) -->
+    <div class="row mb-4" id="estadisticas">
+        <!-- ... tus estadísticas actuales ... -->
+    </div>
+    
+    <!-- Resto del contenido -->
+    <!-- ... -->
     <div class="container">
         <!-- Estadísticas -->
         <div class="row mb-4" id="estadisticas">

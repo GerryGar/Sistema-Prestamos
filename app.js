@@ -579,3 +579,402 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mostrar indicador de conexión
     mostrarEstadoConexion();
 });
+// ============ SISTEMA DE GRÁFICOS ============
+let periodoActual = 'mes';
+let graficosInstancia = {};
+
+// Función para cambiar período
+function cambiarPeriodo(periodo, boton) {
+    periodoActual = periodo;
+    
+    // Actualizar botones activos
+    document.querySelectorAll('.btn-periodo').forEach(btn => {
+        btn.classList.remove('activo');
+    });
+    boton.classList.add('activo');
+    
+    // Actualizar gráficos
+    actualizarGraficos();
+}
+
+// Función principal para actualizar todos los gráficos
+function actualizarGraficos() {
+    if (isLoading) return;
+    
+    actualizarResumenCards();
+    crearGraficoIngresos();
+    crearGraficoDistribucion();
+    crearGraficoComparativa();
+}
+
+// Actualizar cards de resumen
+function actualizarResumenCards() {
+    const container = document.getElementById('resumenCards');
+    if (!container) return;
+    
+    const { fechaInicio, fechaFin } = obtenerRangoFechas(periodoActual);
+    
+    // Calcular métricas del período
+    const pagosPeriodo = pagos.filter(p => {
+        return p.fecha >= fechaInicio && p.fecha <= fechaFin;
+    });
+    
+    const prestamosPeriodo = prestamos.filter(p => {
+        return p.fechaInicio >= fechaInicio && p.fechaInicio <= fechaFin;
+    });
+    
+    const totalIngresos = pagosPeriodo.reduce((sum, p) => sum + p.monto, 0);
+    const totalPrestado = prestamosPeriodo.reduce((sum, p) => sum + p.monto, 0);
+    const totalIntereses = prestamosPeriodo.reduce((sum, p) => {
+        return sum + (p.monto * (p.interes / 100) * (p.plazo / 12));
+    }, 0);
+    
+    const gananciaNeta = totalIngresos + totalIntereses;
+    const prestamosActivos = prestamos.filter(p => p.estado === 'activo').length;
+    
+    container.innerHTML = `
+        <div class="resumen-card">
+            <div class="icono">💰</div>
+            <div class="etiqueta">Ingresos del Período</div>
+            <div class="valor" style="color: #10b981;">$${totalIngresos.toLocaleString()}</div>
+            <div class="tendencia tendencia-positiva">↑ Pagos recibidos</div>
+        </div>
+        
+        <div class="resumen-card">
+            <div class="icono">📈</div>
+            <div class="etiqueta">Préstamos Nuevos</div>
+            <div class="valor" style="color: #2563eb;">$${totalPrestado.toLocaleString()}</div>
+            <div class="tendencia">${prestamosPeriodo.length} préstamos</div>
+        </div>
+        
+        <div class="resumen-card">
+            <div class="icono">💎</div>
+            <div class="etiqueta">Ganancia Neta</div>
+            <div class="valor" style="color: #8b5cf6;">$${gananciaNeta.toLocaleString()}</div>
+            <div class="tendencia tendencia-positiva">Capital + Intereses</div>
+        </div>
+        
+        <div class="resumen-card">
+            <div class="icono">📊</div>
+            <div class="etiqueta">Préstamos Activos</div>
+            <div class="valor" style="color: #f59e0b;">${prestamosActivos}</div>
+            <div class="tendencia">Por cobrar</div>
+        </div>
+    `;
+}
+
+// Gráfico 1: Ingresos por Pagos (Línea temporal)
+function crearGraficoIngresos() {
+    const ctx = document.getElementById('graficoIngresos');
+    if (!ctx) return;
+    
+    // Destruir gráfico anterior si existe
+    if (graficosInstancia.ingresos) {
+        graficosInstancia.ingresos.destroy();
+    }
+    
+    const { fechaInicio, fechaFin, labels, datasets } = prepararDatosIngresos();
+    
+    graficosInstancia.ingresos = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Ingresos por Pagos',
+                data: datasets.ingresos,
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#2563eb',
+                pointBorderColor: 'white',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return ` $${context.parsed.y.toLocaleString()}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Gráfico 2: Distribución de Préstamos (Dona)
+function crearGraficoDistribucion() {
+    const ctx = document.getElementById('graficoDistribucion');
+    if (!ctx) return;
+    
+    if (graficosInstancia.distribucion) {
+        graficosInstancia.distribucion.destroy();
+    }
+    
+    const activos = prestamos.filter(p => p.estado === 'activo').length;
+    const pagados = prestamos.filter(p => p.estado === 'pagado').length;
+    
+    graficosInstancia.distribucion = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Activos', 'Pagados'],
+            datasets: [{
+                data: [activos, pagados],
+                backgroundColor: [
+                    'rgba(37, 99, 235, 0.8)',
+                    'rgba(16, 185, 129, 0.8)'
+                ],
+                borderColor: [
+                    '#2563eb',
+                    '#10b981'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+// Gráfico 3: Comparativa Préstamos vs Pagos (Barras)
+function crearGraficoComparativa() {
+    const ctx = document.getElementById('graficoComparativa');
+    if (!ctx) return;
+    
+    if (graficosInstancia.comparativa) {
+        graficosInstancia.comparativa.destroy();
+    }
+    
+    const { labels, datasets } = prepararDatosComparativa();
+    
+    graficosInstancia.comparativa = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Préstamos Otorgados',
+                    data: datasets.prestamos,
+                    backgroundColor: 'rgba(37, 99, 235, 0.8)',
+                    borderColor: '#2563eb',
+                    borderWidth: 1,
+                    borderRadius: 5
+                },
+                {
+                    label: 'Pagos Recibidos',
+                    data: datasets.pagos,
+                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                    borderColor: '#10b981',
+                    borderWidth: 1,
+                    borderRadius: 5
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return ` $${context.parsed.y.toLocaleString()}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ============ FUNCIONES AUXILIARES PARA GRÁFICOS ============
+function obtenerRangoFechas(periodo) {
+    const hoy = new Date();
+    let fechaInicio, fechaFin;
+    
+    switch(periodo) {
+        case 'mes':
+            fechaInicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+            fechaFin = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+            break;
+        case 'trimestre':
+            const trimestreActual = Math.floor(hoy.getMonth() / 3);
+            fechaInicio = new Date(hoy.getFullYear(), trimestreActual * 3, 1);
+            fechaFin = new Date(hoy.getFullYear(), (trimestreActual + 1) * 3, 0);
+            break;
+        case 'anio':
+            fechaInicio = new Date(hoy.getFullYear(), 0, 1);
+            fechaFin = new Date(hoy.getFullYear(), 11, 31);
+            break;
+    }
+    
+    return {
+        fechaInicio: fechaInicio.toISOString().split('T')[0],
+        fechaFin: fechaFin.toISOString().split('T')[0]
+    };
+}
+
+function prepararDatosIngresos() {
+    const { fechaInicio, fechaFin } = obtenerRangoFechas(periodoActual);
+    let labels = [];
+    let datosIngresos = [];
+    
+    // Agrupar por día o mes según el período
+    const pagosFiltrados = pagos.filter(p => 
+        p.fecha >= fechaInicio && p.fecha <= fechaFin
+    );
+    
+    if (periodoActual === 'mes') {
+        // Agrupar por día
+        const diasEnMes = new Date(fechaFin).getDate();
+        for (let i = 1; i <= diasEnMes; i++) {
+            const dia = i.toString().padStart(2, '0');
+            labels.push(`Día ${dia}`);
+            
+            const totalDia = pagosFiltrados
+                .filter(p => p.fecha.endsWith(`-${dia}`))
+                .reduce((sum, p) => sum + p.monto, 0);
+            datosIngresos.push(totalDia);
+        }
+    } else {
+        // Agrupar por mes
+        const mesesLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 
+                            'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        
+        const inicio = new Date(fechaInicio);
+        const fin = new Date(fechaFin);
+        
+        for (let m = inicio.getMonth(); m <= fin.getMonth(); m++) {
+            labels.push(mesesLabels[m]);
+            
+            const totalMes = pagosFiltrados.filter(p => {
+                const fechaPago = new Date(p.fecha + 'T00:00:00');
+                return fechaPago.getMonth() === m;
+            }).reduce((sum, p) => sum + p.monto, 0);
+            
+            datosIngresos.push(totalMes);
+        }
+    }
+    
+    return {
+        labels: labels,
+        datasets: {
+            ingresos: datosIngresos
+        }
+    };
+}
+
+function prepararDatosComparativa() {
+    const { fechaInicio, fechaFin } = obtenerRangoFechas(periodoActual);
+    let labels = [];
+    let datosPrestamos = [];
+    let datosPagos = [];
+    
+    if (periodoActual === 'mes') {
+        // Por semana
+        labels = ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4'];
+        
+        const inicio = new Date(fechaInicio + 'T00:00:00');
+        
+        for (let s = 0; s < 4; s++) {
+            const inicioSemana = new Date(inicio);
+            inicioSemana.setDate(inicio.getDate() + (s * 7));
+            
+            const finSemana = new Date(inicioSemana);
+            finSemana.setDate(inicioSemana.getDate() + 6);
+            
+            const prestamosSemana = prestamos.filter(p => {
+                const fecha = new Date(p.fechaInicio + 'T00:00:00');
+                return fecha >= inicioSemana && fecha <= finSemana;
+            }).reduce((sum, p) => sum + p.monto, 0);
+            
+            const pagosSemana = pagos.filter(p => {
+                const fecha = new Date(p.fecha + 'T00:00:00');
+                return fecha >= inicioSemana && fecha <= finSemana;
+            }).reduce((sum, p) => sum + p.monto, 0);
+            
+            datosPrestamos.push(prestamosSemana);
+            datosPagos.push(pagosSemana);
+        }
+    } else {
+        // Por mes
+        const mesesLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 
+                            'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        
+        const inicio = new Date(fechaInicio);
+        const fin = new Date(fechaFin);
+        
+        for (let m = inicio.getMonth(); m <= fin.getMonth(); m++) {
+            labels.push(mesesLabels[m]);
+            
+            const prestamosMes = prestamos.filter(p => {
+                const fecha = new Date(p.fechaInicio + 'T00:00:00');
+                return fecha.getMonth() === m;
+            }).reduce((sum, p) => sum + p.monto, 0);
+            
+            const pagosMes = pagos.filter(p => {
+                const fecha = new Date(p.fecha + 'T00:00:00');
+                return fecha.getMonth() === m;
+            }).reduce((sum, p) => sum + p.monto, 0);
+            
+            datosPrestamos.push(prestamosMes);
+            datosPagos.push(pagosMes);
+        }
+    }
+    
+    return {
+        labels: labels,
+        datasets: {
+            prestamos: datosPrestamos,
+            pagos: datosPagos
+        }
+    };
+}
+
+// Actualizar gráficos cuando cambien los datos
+function actualizarTodo() {
+    actualizarEstadisticas();
+    actualizarTablaPrestamos();
+    actualizarTablaPagos();
+    actualizarSelectPrestamos();
+    actualizarGraficos(); // <- Nueva función
+}
