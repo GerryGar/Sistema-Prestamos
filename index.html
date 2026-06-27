@@ -276,74 +276,6 @@
     </div>
 </nav>
     <div class="container">
-    <!-- Nuevo: Panel de Gráficos -->
-    <div class="graficos-container">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="mb-0">
-                <i class="bi bi-graph-up me-2"></i>
-                Panel de Ganancias
-            </h4>
-            <div class="selector-periodo">
-                <button class="btn btn-periodo activo" onclick="cambiarPeriodo('mes', this)">
-                    Este Mes
-                </button>
-                <button class="btn btn-periodo" onclick="cambiarPeriodo('trimestre', this)">
-                    Trimestre
-                </button>
-                <button class="btn btn-periodo" onclick="cambiarPeriodo('anio', this)">
-                    Este Año
-                </button>
-            </div>
-        </div>
-        
-        <!-- Cards de Resumen -->
-        <div class="resumen-cards" id="resumenCards">
-            <!-- Se llena dinámicamente -->
-        </div>
-        
-        <!-- Gráficos -->
-        <div class="row">
-            <div class="col-lg-8 mb-4">
-                <div class="grafico-card">
-                    <h6 class="text-muted mb-3">
-                        <i class="bi bi-cash-stack me-2"></i>
-                        Ingresos por Pagos
-                    </h6>
-                    <canvas id="graficoIngresos"></canvas>
-                </div>
-            </div>
-            <div class="col-lg-4 mb-4">
-                <div class="grafico-card">
-                    <h6 class="text-muted mb-3">
-                        <i class="bi bi-pie-chart me-2"></i>
-                        Distribución de Préstamos
-                    </h6>
-                    <canvas id="graficoDistribucion"></canvas>
-                </div>
-            </div>
-        </div>
-        
-        <div class="row">
-            <div class="col-lg-12">
-                <div class="grafico-card">
-                    <h6 class="text-muted mb-3">
-                        <i class="bi bi-graph-up-arrow me-2"></i>
-                        Comparativa: Préstamos vs Pagos
-                    </h6>
-                    <canvas id="graficoComparativa"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Estadísticas existentes (las mantenemos) -->
-    <div class="row mb-4" id="estadisticas">
-        <!-- ... tus estadísticas actuales ... -->
-    </div>
-    
-    <!-- Resto del contenido -->
-    <!-- ... -->
-    <div class="container">
         <!-- Estadísticas -->
         <div class="row mb-4" id="estadisticas">
             <div class="col-md-3 col-6 mb-2">
@@ -550,6 +482,66 @@
             </div>
         </div>
     </div>
+    <!-- 3. GRÁFICOS (ABAJO) -->
+    <div class="graficos-container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="mb-0">
+                <i class="bi bi-graph-up me-2"></i>
+                Panel de Ganancias
+            </h4>
+            <div class="selector-periodo">
+                <button class="btn btn-periodo activo" onclick="cambiarPeriodo('mes', this)">
+                    Este Mes
+                </button>
+                <button class="btn btn-periodo" onclick="cambiarPeriodo('trimestre', this)">
+                    Trimestre
+                </button>
+                <button class="btn btn-periodo" onclick="cambiarPeriodo('anio', this)">
+                    Este Año
+                </button>
+            </div>
+        </div>
+        
+        <!-- Cards de Resumen -->
+        <div class="resumen-cards" id="resumenCards">
+            <!-- Se llena dinámicamente -->
+        </div>
+        
+        <!-- Gráficos -->
+        <div class="row">
+            <div class="col-lg-8 mb-4">
+                <div class="grafico-card">
+                    <h6 class="text-muted mb-3">
+                        <i class="bi bi-cash-stack me-2"></i>
+                        Ingresos por Pagos
+                    </h6>
+                    <canvas id="graficoIngresos"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-4 mb-4">
+                <div class="grafico-card">
+                    <h6 class="text-muted mb-3">
+                        <i class="bi bi-pie-chart me-2"></i>
+                        Distribución de Préstamos
+                    </h6>
+                    <canvas id="graficoDistribucion"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="grafico-card">
+                    <h6 class="text-muted mb-3">
+                        <i class="bi bi-graph-up-arrow me-2"></i>
+                        Comparativa: Préstamos vs Pagos
+                    </h6>
+                    <canvas id="graficoComparativa"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
     <!-- Al final del body, cambia el orden de los scripts -->
         <script src="config.js"></script>
