@@ -1,3 +1,42 @@
+// ============ VERIFICACIÓN DE AUTENTICACIÓN ============
+const auth = firebase.auth();
+
+// Verificar si el usuario está autenticado
+auth.onAuthStateChanged((user) => {
+    if (!user) {
+        // Si no está autenticado, redirigir al login
+        window.location.href = 'login.html';
+    } else {
+        // Si está autenticado, mostrar su nombre
+        mostrarUsuario(user);
+        // Inicializar el sistema
+        inicializarFirebase();
+    }
+});
+
+// Función para mostrar usuario y botón de cerrar sesión
+function mostrarUsuario(user) {
+    // Obtener nombre del usuario
+    db.collection('usuarios').doc(user.uid).get()
+        .then((doc) => {
+            if (doc.exists) {
+                const userData = doc.data();
+                document.getElementById('nombreUsuario').textContent = userData.nombre;
+            }
+        })
+        .catch((error) => {
+            console.log('Error al obtener datos del usuario');
+        });
+}
+
+// Función para cerrar sesión
+function cerrarSesion() {
+    if (confirm('¿Estás seguro de cerrar sesión?')) {
+        auth.signOut().then(() => {
+            window.location.href = 'login.html';
+        });
+    }
+}
 // ============ VARIABLES GLOBALES ============
 let prestamos = [];
 let pagos = [];
