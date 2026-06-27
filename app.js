@@ -284,11 +284,13 @@ document.getElementById('formPago').addEventListener('submit', async function(e)
         this.reset();
         document.getElementById('fechaPago').value = new Date().toISOString().split('T')[0];
         
-        const saldo = calcularSaldoRestante(prestamoId);
-        alert(`✅ Pago registrado exitosamente\n` +
-              `Monto: $${montoPago}\n` +
-              `Fecha: ${formatearFecha(fechaPago)}\n` +
-              `Saldo restante: $${saldo}`);
+         // Mostrar ticket automáticamente
+        const ultimoPago = pagos[pagos.length - 1];
+            if (confirm('✅ Pago registrado exitosamente\n\n¿Deseas imprimir el comprobante?')) {
+            generarTicket(ultimoPago.id);
+        } else {
+        alert(`Monto: $${montoPago.toLocaleString()}\nSaldo restante: $${saldo.toLocaleString()}`);
+}
               
     } catch (error) {
         alert('❌ Error al registrar el pago. Intenta de nuevo.');
@@ -405,7 +407,7 @@ function actualizarTablaPagos() {
     if (isLoading) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="4" class="text-center py-3">
+                <td colspan="5" class="text-center py-3">
                     <span class="text-muted">Cargando pagos...</span>
                 </td>
             </tr>
@@ -416,7 +418,7 @@ function actualizarTablaPagos() {
     if (pagos.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="4" class="text-center text-muted py-4">
+                <td colspan="5" class="text-center text-muted py-4">
                     <i class="bi bi-cash-stack fs-1"></i>
                     <p>No hay pagos registrados</p>
                 </td>
@@ -444,6 +446,12 @@ function actualizarTablaPagos() {
                 <td>${formatearFecha(pago.fecha)}</td>
                 <td>
                     <span class="badge bg-info">$${saldo.toLocaleString()}</span>
+                </td>
+                <td>
+                    <button class="btn-ticket" onclick="generarTicket('${pago.id}')" 
+                            title="Imprimir comprobante">
+                        <i class="bi bi-receipt me-1"></i>Ticket
+                    </button>
                 </td>
             </tr>
         `;
@@ -1324,3 +1332,168 @@ function actualizarTodo() {
     actualizarSelectPrestamos();
     actualizarGraficos(); // <- Nueva función
 }
+// ============ SISTEMA DE TICKETS ============
+
+function generarTicket(pagoId) {
+    const pago = pagos.find(p => p.id === pagoId);
+    if (!pago) {
+        alert('❌ Pago no encontrado');
+        return;
+    }
+    
+    const prestamo = prestamos.find(p => p.id === pago.prestamoId);
+    if (!prestamo) {
+        alert('❌ Préstamo no encontrado');
+        return;
+    }
+    
+    const saldoRestante = calcularSaldoRestante(prestamo.id);
+    const ticketHTML = crearTicketHTML(pago, prestamo, saldoRestante);
+    
+    const container = document.getElementById('ticketContainer');
+    container.innerHTML = ticketHTML;
+    
+    document.getElementById('ticketOverlay').classList.add('activo');
+}
+
+function crearTicketHTML(pago, prestamo, saldoRestante) {
+    const numeroTicket = generarNumeroTicket(pago.id);
+    const fechaPago = new Date(pago.fecha + 'T00:00:00');
+    const fechaFormateada = fechaPago.toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    const horaFormateada = new Date().toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    
+    // Calcular total pagado hasta ahora
+    const pagosAnteriores = pagos
+        .filter(p => p.prestamoId === prestamo.id && p.id <= pago.id)
+        .reduce((sum, p) => sum + p.monto, 0);
+    
+    return `
+        <div class="ticket-header">
+            <div class="logo">💰</div>
+            <h3>Comprobante de Pago</h3>
+            <small>Ticket #${numeroTicket}</small>
+        </div>
+        
+        <div class="ticket-body">
+            <div class="ticket-info">
+                <div class="fila">
+                    <span class="label">Fecha:</span>
+                    <span class="value">${fechaFormateada}</span>
+                </div>
+                <div class="fila">
+                    <span class="label">Hora:</span>
+                    <span class="value">${horaFormateada}</span>
+                </div>
+                <div class="fila">
+                    <span class="label">Cliente:</span>
+                    <span class="value">${prestamo.cliente}</span>
+                </div>
+                <div class="fila">
+                    <span class="label">Préstamo:</span>
+                    <span class="value">${prestamo.motivo}</span>
+                </div>
+                <div class="fila">
+                    <span class="label">Monto original:</span>
+                    <span class="value">$${prestamo.monto.toLocaleString()}</span>
+                </div>
+                <div class="fila">
+                    <span class="label">Cuota mensual:</span>
+                    <span class="value">$${prestamo.cuotaMensual.toLocaleString()}</span>
+                </div>
+            </div>
+            
+            <div class="ticket-monto">
+                <div class="monto-label">MONTO RECIBIDO</div>
+                <div class="monto-recibido">$${pago.monto.toLocaleString()}</div>
+                <small style="color: #64748b;">
+                    ${pago.monto >= prestamo.cuotaMensual ? '✅ Pago completo' : '⚠️ Pago parcial'}
+                </small>
+            </div>
+            
+            <div class="ticket-info">
+                <div class="fila">
+                    <span class="label">Total pagado:</span>
+                    <span class="value text-success">$${pagosAnteriores.toLocaleString()}</span>
+                </div>
+                <div class="fila">
+                    <span class="label">Saldo pendiente:</span>
+                    <span class="value text-danger">$${parseFloat(saldoRestante).toLocaleString()}</span>
+                </div>
+                <div class="fila">
+                    <span class="label">Estado del préstamo:</span>
+                    <span class="value">
+                        ${prestamo.estado === 'activo' ? 
+                            '<span style="color: #2563eb;">Activo</span>' : 
+                            '<span style="color: #10b981;">Pagado</span>'}
+                    </span>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px; padding: 10px; background: #f8fafc; border-radius: 10px;">
+                <small style="color: #64748b;">
+                    <i class="bi bi-check-circle text-success me-1"></i>
+                    Pago registrado exitosamente
+                </small>
+            </div>
+        </div>
+        
+        <div class="ticket-footer">
+            <div>Este comprobante es válido como constancia de pago</div>
+            <div>Gracias por su preferencia</div>
+        </div>
+        
+        <div class="ticket-acciones">
+            <button class="btn-imprimir" onclick="imprimirTicket()">
+                <i class="bi bi-printer me-2"></i>Imprimir
+            </button>
+            <button class="btn-cerrar-ticket" onclick="cerrarTicket()">
+                <i class="bi bi-x-lg me-2"></i>Cerrar
+            </button>
+        </div>
+    `;
+}
+
+function generarNumeroTicket(pagoId) {
+    const numero = Math.abs(hashCode(pagoId.toString())).toString().substring(0, 8);
+    return `TKT-${new Date().getFullYear()}-${numero.padStart(6, '0')}`;
+}
+
+function hashCode(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return hash;
+}
+
+function imprimirTicket() {
+    window.print();
+}
+
+function cerrarTicket() {
+    document.getElementById('ticketOverlay').classList.remove('activo');
+}
+
+// Cerrar ticket con ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        cerrarTicket();
+    }
+});
+
+// Cerrar ticket haciendo clic fuera
+document.getElementById('ticketOverlay').addEventListener('click', function(e) {
+    if (e.target === this) {
+        cerrarTicket();
+    }
+});

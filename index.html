@@ -244,6 +244,200 @@
         .tendencia-negativa {
             color: #ef4444;
 }
+        /* Estilos para el ticket */
+        .ticket-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            overflow-y: auto;
+        }
+
+        .ticket-overlay.activo {
+            display: flex;
+        }
+
+        .ticket-container {
+            background: white;
+            width: 400px;
+            max-width: 95%;
+            margin: 20px;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        .ticket-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+            position: relative;
+        }
+
+        .ticket-header h3 {
+            margin: 0;
+            font-size: 1.3rem;
+        }
+
+        .ticket-header .logo {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .ticket-body {
+            padding: 25px;
+            border: 2px dashed #e2e8f0;
+            border-top: none;
+        }
+
+        .ticket-info {
+            margin-bottom: 20px;
+        }
+
+        .ticket-info .fila {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .ticket-info .fila:last-child {
+            border-bottom: none;
+        }
+
+        .ticket-info .label {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .ticket-info .value {
+            font-weight: 600;
+            color: #1e293b;
+            text-align: right;
+        }
+
+        .ticket-monto {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .ticket-monto .monto-recibido {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #10b981;
+        }
+
+        .ticket-monto .monto-label {
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+
+        .ticket-footer {
+            text-align: center;
+            padding: 15px;
+            color: #94a3b8;
+            font-size: 0.8rem;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .ticket-acciones {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 0 0 10px 10px;
+        }
+
+        .ticket-acciones button {
+            flex: 1;
+            padding: 12px;
+            font-weight: 600;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-imprimir {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+
+        .btn-imprimir:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-cerrar-ticket {
+            background: white;
+            color: #64748b;
+            border: 2px solid #e2e8f0;
+        }
+
+        .btn-cerrar-ticket:hover {
+            background: #f1f5f9;
+        }
+
+        /* Estilos de impresión */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            
+            .ticket-overlay, .ticket-overlay * {
+                visibility: visible;
+            }
+            
+            .ticket-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                background: white;
+            }
+            
+            .ticket-container {
+                box-shadow: none;
+                margin: 0;
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .ticket-acciones {
+                display: none;
+            }
+            
+            .ticket-body {
+                border: 2px solid #000;
+            }
+        }
+
+        /* Ticket en tabla de pagos */
+        .btn-ticket {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-ticket:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 10px rgba(245, 158, 11, 0.4);
+}
     </style>
     <!-- Agregar después del link de Bootstrap Icons -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -546,5 +740,12 @@
     <!-- Al final del body, cambia el orden de los scripts -->
         <script src="config.js?v=1.0"></script>
         <script src="app.js?v=1.0"></script>
+
+    <!-- Modal del Ticket -->
+<div class="ticket-overlay" id="ticketOverlay">
+    <div class="ticket-container" id="ticketContainer">
+        <!-- El ticket se genera dinámicamente -->
+    </div>
+</div>
 </body>
 </html>
