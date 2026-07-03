@@ -737,7 +737,7 @@ function generarPDFCliente(prestamoId) {
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(22);
         doc.setFont('helvetica', 'bold');
-        doc.text('REPORTE DE PRÉSTAMO', pageWidth / 2, 22, { align: 'center' });
+        doc.text('REPORTE DE COMPRAS', pageWidth / 2, 22, { align: 'center' });
         
         doc.setFontSize(14);
         doc.setFont('helvetica', 'normal');
@@ -754,7 +754,7 @@ function generarPDFCliente(prestamoId) {
         yPos += 8;
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
-        doc.text('INFORMACIÓN DEL PRÉSTAMO', 20, yPos);
+        doc.text('INFORMACIÓN DE LAS COMPRAS', 20, yPos);
         
         yPos += 8;
         doc.setFont('helvetica', 'normal');
