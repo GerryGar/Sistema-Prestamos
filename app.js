@@ -542,7 +542,6 @@ async function eliminarPrestamo(id) {
         }
     }
 }
-
 // ============ FUNCIONES DE PDF (Mantener las existentes) ============
 // Aquí van todas las funciones de PDF que ya tienes:
 // exportarPDF(), seleccionarClientePDF(), generarPDFGeneral(), generarPDFCliente()
@@ -552,7 +551,6 @@ async function eliminarPrestamo(id) {
             alert('❌ No hay préstamos para generar el reporte');
             return;
     }
-    
     // Crear menú de opciones mejorado
     const opcion = prompt(
         'SELECCIONA EL TIPO DE REPORTE:\n\n' +
@@ -561,8 +559,7 @@ async function eliminarPrestamo(id) {
         '3 = Reporte COMPLETO de un cliente (todos sus préstamos)\n\n' +
         'Ingresa el número de la opción:'
     );
-    
-    switch(opcion) {
+     switch(opcion) {
         case '1':
             generarPDFGeneral();
             break;
