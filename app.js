@@ -380,22 +380,22 @@ function actualizarTablaPrestamos() {
                     <span class="badge-estado ${estadoClass}">${estadoTexto}</span>
                 </td>
                 <td>
-                    <div class="btn-group btn-group-sm">
+                   <div class="btn-group btn-group-sm">
                         <button class="btn btn-outline-info" onclick="verDetalle('${prestamo.id}')" 
-                                title="Ver detalle">
-                            <i class="bi bi-eye"></i>
+                            title="Ver detalle">
+                        <i class="bi bi-eye"></i>
                         </button>
                         <button class="btn btn-outline-success" onclick="generarPDFCliente('${prestamo.id}')" 
-                                title="Descargar PDF">
+                            title="Descargar PDF individual">
                             <i class="bi bi-file-pdf"></i>
                         </button>
-                        <button class="btn btn-outline-warning btn-sm" 
-                                onclick="generarPDFClienteCompleto('${prestamo.cliente.replace(/'/g, "\\'")}')" 
-                                title="PDF completo del cliente">
+                            <button class="btn btn-outline-warning" 
+                            onclick="generarPDFClienteCompleto('${prestamo.cliente.replace(/'/g, "\\'")}')" 
+                            title="PDF completo del cliente">
                             <i class="bi bi-file-earmark-pdf"></i>
                         </button>
-                        <button class="btn btn-outline-danger" onclick="eliminarPrestamo('${prestamo.id}')" 
-                                title="Eliminar">
+                                <button class="btn btn-outline-danger" onclick="eliminarPrestamo('${prestamo.id}')" 
+                                    title="Eliminar">
                             <i class="bi bi-trash"></i>
                         </button>
                     </div>
