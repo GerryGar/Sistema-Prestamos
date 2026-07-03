@@ -389,6 +389,11 @@ function actualizarTablaPrestamos() {
                                 title="Descargar PDF">
                             <i class="bi bi-file-pdf"></i>
                         </button>
+                        <button class="btn btn-outline-warning btn-sm" 
+                                onclick="generarPDFClienteCompleto('${prestamo.cliente.replace(/'/g, "\\'")}')" 
+                                title="PDF completo del cliente">
+                            <i class="bi bi-file-earmark-pdf"></i>
+                        </button>
                         <button class="btn btn-outline-danger" onclick="eliminarPrestamo('${prestamo.id}')" 
                                 title="Eliminar">
                             <i class="bi bi-trash"></i>
@@ -543,23 +548,352 @@ async function eliminarPrestamo(id) {
 // exportarPDF(), seleccionarClientePDF(), generarPDFGeneral(), generarPDFCliente()
 // ============ FUNCIONES DE PDF ============
 
-function exportarPDF() {
+// ============ NUEVA FUNCIÓN: PDF POR CLIENTE ============
+
+function seleccionarClienteParaPDF() {
     if (prestamos.length === 0) {
-        alert('❌ No hay préstamos para generar el reporte');
+        alert('❌ No hay préstamos registrados');
         return;
     }
     
-    // Crear menú de opciones
-    const opcion = confirm(
+    // Obtener lista de clientes únicos
+    const clientesUnicos = [...new Set(prestamos.map(p => p.cliente))];
+    
+    let listaClientes = 'SELECCIONA EL CLIENTE:\n\n';
+    clientesUnicos.forEach((cliente, index) => {
+        const prestamosCliente = prestamos.filter(p => p.cliente === cliente);
+        listaClientes += `${index + 1}. ${cliente} (${prestamosCliente.length} préstamos)\n`;
+    });
+    
+    const seleccion = prompt(listaClientes + '\nIngresa el número del cliente:');
+    
+    if (seleccion && !isNaN(seleccion)) {
+        const index = parseInt(seleccion) - 1;
+        if (clientesUnicos[index]) {
+            generarPDFClienteCompleto(clientesUnicos[index]);
+        } else {
+            alert('❌ Número de cliente inválido');
+        }
+    }
+}
+
+function generarPDFClienteCompleto(nombreCliente) {
+    try {
+        const prestamosCliente = prestamos.filter(p => p.cliente === nombreCliente);
+        
+        if (prestamosCliente.length === 0) {
+            alert('❌ No se encontraron préstamos para este cliente');
+            return;
+        }
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        const pageWidth = doc.internal.pageSize.width;
+        
+        // ===== ENCABEZADO =====
+        doc.setFillColor(37, 99, 235);
+        doc.rect(0, 0, pageWidth, 45, 'F');
+        
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.text('REPORTE DE PRÉSTAMOS', pageWidth / 2, 22, { align: 'center' });
+        
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Cliente: ${nombreCliente}`, pageWidth / 2, 35, { align: 'center' });
+        
+        // ===== RESUMEN GENERAL DEL CLIENTE =====
+        let yPos = 55;
+        doc.setTextColor(0, 0, 0);
+        
+        const totalPrestado = prestamosCliente.reduce((sum, p) => sum + p.monto, 0);
+        const totalIntereses = prestamosCliente.reduce((sum, p) => {
+            return sum + (p.monto * (p.interes / 100) * (p.plazo / 12));
+        }, 0);
+        const totalPagar = totalPrestado + totalIntereses;
+        
+        // Calcular total pagado de todos los préstamos
+        let totalPagado = 0;
+        prestamosCliente.forEach(prestamo => {
+            totalPagado += pagos
+                .filter(p => p.prestamoId === prestamo.id)
+                .reduce((sum, p) => sum + p.monto, 0);
+        });
+        
+        const saldoTotal = totalPagar - totalPagado;
+        const prestamosActivos = prestamosCliente.filter(p => p.estado === 'activo').length;
+        const prestamosPagados = prestamosCliente.filter(p => p.estado === 'pagado').length;
+        
+        // Cuadro de resumen
+        doc.setFillColor(240, 245, 255);
+        doc.rect(14, yPos, pageWidth - 28, 40, 'F');
+        
+        yPos += 8;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.setTextColor(37, 99, 235);
+        doc.text('RESUMEN GENERAL DEL CLIENTE', 20, yPos);
+        
+        yPos += 8;
+        doc.setFontSize(9);
+        doc.setTextColor(0, 0, 0);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Total de préstamos: ${prestamosCliente.length}`, 20, yPos);
+        doc.text(`Activos: ${prestamosActivos}`, 80, yPos);
+        doc.text(`Pagados: ${prestamosPagados}`, 120, yPos);
+        doc.text(`Total prestado: $${totalPrestado.toLocaleString()}`, 160, yPos);
+        
+        yPos += 6;
+        doc.text(`Intereses generados: $${totalIntereses.toLocaleString()}`, 20, yPos);
+        doc.text(`Total a pagar: $${totalPagar.toLocaleString()}`, 80, yPos);
+        
+        yPos += 6;
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Total pagado: $${totalPagado.toLocaleString()}`, 20, yPos);
+        doc.text(`Saldo pendiente: $${saldoTotal.toLocaleString()}`, 80, yPos);
+        
+        const porcentajePagado = ((totalPagado / totalPagar) * 100).toFixed(1);
+        doc.text(`Progreso: ${porcentajePagado}%`, 140, yPos);
+        
+        // ===== TABLA RESUMEN DE PRÉSTAMOS =====
+        yPos += 15;
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(37, 99, 235);
+        doc.text('LISTADO DE PRÉSTAMOS', 20, yPos);
+        
+        yPos += 8;
+        
+        const tableData = prestamosCliente.map(p => {
+            const pagosPrestamo = pagos.filter(pg => pg.prestamoId === p.id);
+            const totalPagadoPrestamo = pagosPrestamo.reduce((sum, pg) => sum + pg.monto, 0);
+            const saldoPrestamo = parseFloat(calcularSaldoRestante(p.id));
+            
+            return [
+                p.motivo.length > 30 ? p.motivo.substring(0, 30) + '...' : p.motivo,
+                `$${p.monto.toLocaleString()}`,
+                `${p.interes}%`,
+                `${p.plazo} meses`,
+                `$${p.cuotaMensual.toLocaleString()}`,
+                formatearFecha(p.fechaInicio),
+                `$${totalPagadoPrestamo.toLocaleString()}`,
+                `$${saldoPrestamo.toLocaleString()}`,
+                p.estado === 'activo' ? 'Activo' : 'Pagado'
+            ];
+        });
+        
+        doc.autoTable({
+            startY: yPos,
+            head: [['Motivo', 'Monto', 'Interés', 'Plazo', 'Cuota', 'Inicio', 'Pagado', 'Saldo', 'Estado']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: {
+                fillColor: [37, 99, 235],
+                textColor: [255, 255, 255],
+                fontSize: 8,
+                fontStyle: 'bold',
+                halign: 'center'
+            },
+            bodyStyles: {
+                fontSize: 7,
+                textColor: [50, 50, 50]
+            },
+            alternateRowStyles: {
+                fillColor: [245, 247, 250]
+            },
+            columnStyles: {
+                0: { cellWidth: 35 },
+                1: { cellWidth: 18, halign: 'right' },
+                2: { cellWidth: 13, halign: 'center' },
+                3: { cellWidth: 15, halign: 'center' },
+                4: { cellWidth: 18, halign: 'right' },
+                5: { cellWidth: 20, halign: 'center' },
+                6: { cellWidth: 18, halign: 'right' },
+                7: { cellWidth: 18, halign: 'right' },
+                8: { cellWidth: 14, halign: 'center' }
+            }
+        });
+        
+        // ===== DETALLE DE CADA PRÉSTAMO =====
+        prestamosCliente.forEach((prestamo, index) => {
+            doc.addPage();
+            
+            const pagosPrestamo = pagos
+                .filter(p => p.prestamoId === prestamo.id)
+                .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+            
+            // Encabezado de préstamo
+            doc.setFillColor(59, 130, 246);
+            doc.rect(0, 0, pageWidth, 30, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`Préstamo #${index + 1}: ${prestamo.motivo}`, pageWidth / 2, 20, { align: 'center' });
+            
+            let yPosPrestamo = 40;
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            
+            // Datos del préstamo
+            const datosPrestamo = [
+                ['Motivo:', prestamo.motivo],
+                ['Monto original:', `$${prestamo.monto.toLocaleString()}`],
+                ['Tasa de interés:', `${prestamo.interes}% anual`],
+                ['Plazo:', `${prestamo.plazo} meses`],
+                ['Cuota mensual:', `$${prestamo.cuotaMensual.toLocaleString()}`],
+                ['Fecha inicio:', formatearFecha(prestamo.fechaInicio)],
+                ['Fecha vencimiento:', formatearFecha(prestamo.fechaVencimiento)],
+                ['Estado:', prestamo.estado === 'activo' ? 'ACTIVO' : 'PAGADO']
+            ];
+            
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            doc.text('Datos del Préstamo', 20, yPosPrestamo);
+            
+            yPosPrestamo += 8;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            
+            datosPrestamo.forEach(([label, value]) => {
+                yPosPrestamo += 6;
+                doc.setFont('helvetica', 'bold');
+                doc.text(label, 20, yPosPrestamo);
+                doc.setFont('helvetica', 'normal');
+                doc.text(value.toString(), 75, yPosPrestamo);
+            });
+            
+            // Resumen financiero del préstamo
+            yPosPrestamo += 12;
+            const totalPagadoPrestamo = pagosPrestamo.reduce((sum, p) => sum + p.monto, 0);
+            const totalPagarPrestamo = prestamo.monto + (prestamo.monto * (prestamo.interes / 100) * (prestamo.plazo / 12));
+            
+            doc.setFillColor(240, 245, 255);
+            doc.rect(14, yPosPrestamo, pageWidth - 28, 20, 'F');
+            
+            yPosPrestamo += 8;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(10);
+            doc.setTextColor(37, 99, 235);
+            doc.text('Resumen Financiero', 20, yPosPrestamo);
+            
+            yPosPrestamo += 6;
+            doc.setFontSize(9);
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Total prestado: $${prestamo.monto.toLocaleString()}`, 20, yPosPrestamo);
+            doc.text(`Total a pagar: $${totalPagarPrestamo.toLocaleString()}`, 90, yPosPrestamo);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`Pagado: $${totalPagadoPrestamo.toLocaleString()}`, 150, yPosPrestamo);
+            
+            // Historial de pagos del préstamo
+            yPosPrestamo += 15;
+            
+            if (pagosPrestamo.length > 0) {
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(11);
+                doc.setTextColor(37, 99, 235);
+                doc.text('Historial de Pagos', 20, yPosPrestamo);
+                
+                yPosPrestamo += 6;
+                
+                const pagosData = pagosPrestamo.map((pago, i) => [
+                    (i + 1).toString(),
+                    `$${pago.monto.toLocaleString()}`,
+                    formatearFecha(pago.fecha)
+                ]);
+                
+                doc.autoTable({
+                    startY: yPosPrestamo,
+                    head: [['#', 'Monto', 'Fecha']],
+                    body: pagosData,
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: [37, 99, 235],
+                        textColor: [255, 255, 255],
+                        fontSize: 9,
+                        fontStyle: 'bold',
+                        halign: 'center'
+                    },
+                    bodyStyles: {
+                        fontSize: 8,
+                        textColor: [50, 50, 50]
+                    },
+                    alternateRowStyles: {
+                        fillColor: [245, 247, 250]
+                    },
+                    columnStyles: {
+                        0: { cellWidth: 15, halign: 'center' },
+                        1: { cellWidth: 50, halign: 'right' },
+                        2: { cellWidth: 50, halign: 'center' }
+                    }
+                });
+            } else {
+                doc.setFont('helvetica', 'italic');
+                doc.setFontSize(10);
+                doc.setTextColor(128, 128, 128);
+                doc.text('Sin pagos registrados', 20, yPosPrestamo);
+            }
+        });
+        
+        // ===== PIE DE PÁGINA EN TODAS LAS HOJAS =====
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            
+            doc.setDrawColor(200, 200, 200);
+            doc.line(14, 280, pageWidth - 14, 280);
+            
+            doc.setFontSize(8);
+            doc.setTextColor(128, 128, 128);
+            doc.text(`Reporte generado el ${new Date().toLocaleDateString('es-ES')}`, 20, 285);
+            doc.text(`Cliente: ${nombreCliente}`, pageWidth / 2, 285, { align: 'center' });
+            doc.text(`Página ${i} de ${pageCount}`, pageWidth - 20, 285, { align: 'right' });
+        }
+        
+        // Guardar PDF
+        const nombreArchivo = nombreCliente.toLowerCase().replace(/\s+/g, '-');
+        doc.save(`prestamos-${nombreArchivo}-${new Date().toISOString().split('T')[0]}.pdf`);
+        alert('✅ PDF del cliente generado exitosamente');
+        
+    } catch (error) {
+        console.error('Error al generar PDF:', error);
+        alert('❌ Error al generar el PDF. Verifica las librerías.');
+    }
+}
+    function exportarPDF() {
+        if (prestamos.length === 0) {
+            alert('❌ No hay préstamos para generar el reporte');
+            return;
+    }
+    
+    // Crear menú de opciones mejorado
+    const opcion = prompt(
         'SELECCIONA EL TIPO DE REPORTE:\n\n' +
-        'Aceptar = Reporte de un cliente específico\n' +
-        'Cancelar = Reporte general de todos los préstamos'
+        '1 = Reporte general (todos los préstamos)\n' +
+        '2 = Reporte de un cliente específico (préstamo individual)\n' +
+        '3 = Reporte COMPLETO de un cliente (todos sus préstamos)\n\n' +
+        'Ingresa el número de la opción:'
     );
     
-    if (opcion) {
-        seleccionarClientePDF();
-    } else {
-        generarPDFGeneral();
+    switch(opcion) {
+        case '1':
+            generarPDFGeneral();
+            break;
+        case '2':
+            seleccionarClientePDF();
+            break;
+        case '3':
+            seleccionarClienteParaPDF();
+            break;
+        default:
+            if (opcion === null) return; // Cancelar
+            alert('❌ Opción no válida. Intenta de nuevo.');
+            exportarPDF(); // Volver a preguntar
     }
 }
 
