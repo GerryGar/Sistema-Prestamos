@@ -711,7 +711,7 @@ function generarPDFClienteCompleto(nombreCliente) {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
         doc.setTextColor(37, 99, 235);
-        doc.text('LISTADO DE PRÉSTAMOS', 20, yPos);
+        doc.text('LISTADO DE COMPRAS', 20, yPos);
         
         yPos += 8;
         
