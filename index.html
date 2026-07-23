@@ -437,6 +437,12 @@
         .btn-ticket:hover {
             transform: scale(1.05);
             box-shadow: 0 4px 10px rgba(245, 158, 11, 0.4);
+
+        }
+        @media (max-width: 992px) {
+            .col-lg-3, .col-lg-9 {
+                width: 100%;
+            }
 }
     </style>
     <!-- Agregar después del link de Bootstrap Icons -->
@@ -508,7 +514,7 @@
 
         <div class="row">
             <!-- Panel Izquierdo: Formularios -->
-            <div class="col-lg-4">
+            <div class="col-lg-3">
                 <!-- Formulario de Préstamo -->
                 <div class="card">
                     <div class="card-header">
@@ -649,7 +655,7 @@
     <div class="col-lg-8">
             
             <!-- Panel Derecho: Tablas -->
-            <div class="col-lg-8">
+            <div class="col-lg-9">
                 <!-- Tabla de Préstamos -->
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
