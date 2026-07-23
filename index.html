@@ -593,20 +593,55 @@
                     <div class="card-body">
                         <form id="formPago">
                             <div class="mb-3">
-                                <label class="form-label fw-bold">Préstamo</label>
-                                <select class="form-select" id="selectPrestamo" required>
-                                    <option value="">Seleccionar préstamo...</option>
-                                </select>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Monto del Pago</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="montoPago" 
-                                           placeholder="0.00" step="0.01" required>
-                                </div>
-                            </div>
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-person me-2"></i>Cliente
+                                </label>
+                                <select class="form-select" id="selectClientePago" required>
+                                    <option value="">Seleccionar cliente...</option>
+                            </select>
+                        </div>
+            
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-file-text me-2"></i>Préstamo (Motivo)
+                            </label>
+                            <select class="form-select" id="selectPrestamo" required disabled>
+                                <option value="">Primero selecciona un cliente...</option>
+                        </select>
+                    </div>
+            
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-cash me-2"></i>Monto del Pago
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="montoPago" 
+                                    placeholder="0.00" step="0.01" required>
+                        </div>
+                    </div>
+            
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-calendar-check me-2"></i>Fecha del Pago
+                        </label>
+                        <input type="date" class="form-control" id="fechaPago" required>
+                    </div>
+            
+                    <!-- Info del préstamo seleccionado -->
+                    <div class="alert alert-info mb-3" id="infoPrestamo" style="display: none;">
+                        <small>
+                            <strong>Cuota mensual:</strong> <span id="infoCuota">-</span><br>
+                            <strong>Saldo restante:</strong> <span id="infoSaldo">-</span>
+                        </small>
+                    </div>
+            
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-check-lg me-2"></i>Registrar Pago
+                    </button>
+                </form>
+            </div>
+        </div>    
                                 <!-- AGREGAR ESTE BLOQUE después del input de montoPago -->
                                 <div class="mb-3">
                                 <label class="form-label fw-bold">

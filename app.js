@@ -244,7 +244,7 @@ document.getElementById('formPrestamo').addEventListener('submit', async functio
     }
 });
 
-// ============ REGISTRO DE PAGOS ============
+// ============ REGISTRO DE PAGOS (ACTUALIZADO) ============
 document.getElementById('formPago').addEventListener('submit', async function(e) {
     e.preventDefault();
     
@@ -254,9 +254,15 @@ document.getElementById('formPago').addEventListener('submit', async function(e)
     btnSubmit.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Registrando...';
     
     try {
+        const clienteSeleccionado = document.getElementById('selectClientePago').value;
         const prestamoId = document.getElementById('selectPrestamo').value;
         const montoPago = parseFloat(document.getElementById('montoPago').value);
         const fechaPago = document.getElementById('fechaPago').value;
+        
+        if (!clienteSeleccionado) {
+            alert('❌ Por favor selecciona un cliente');
+            return;
+        }
         
         if (!prestamoId || !montoPago) {
             alert('❌ Selecciona un préstamo y un monto válido');
@@ -283,15 +289,27 @@ document.getElementById('formPago').addEventListener('submit', async function(e)
         
         this.reset();
         document.getElementById('fechaPago').value = new Date().toISOString().split('T')[0];
+        document.getElementById('selectPrestamo').disabled = true;
+        document.getElementById('selectPrestamo').innerHTML = '<option value="">Primero selecciona un cliente...</option>';
+        document.getElementById('infoPrestamo').style.display = 'none';
         
         const saldo = calcularSaldoRestante(prestamoId);
         
         // Mostrar ticket automáticamente
-        const ultimoPago = pagos[pagos.length - 1];
-        if (confirm('✅ Pago registrado exitosamente\n\n¿Deseas imprimir el comprobante?')) {
+        const ultimoPago = pagos.find(p => 
+            p.prestamoId === prestamoId && 
+            p.monto === montoPago && 
+            p.fecha === fechaPago
+        );
+        
+        if (ultimoPago && confirm('✅ Pago registrado exitosamente\n\n¿Deseas imprimir el comprobante?')) {
             generarTicket(ultimoPago.id);
         } else {
-            alert(`Monto: $${montoPago.toLocaleString()}\nSaldo restante: $${saldo.toLocaleString()}`);
+            alert(`✅ Pago registrado exitosamente\n\n` +
+                  `Cliente: ${prestamo.cliente}\n` +
+                  `Préstamo: ${prestamo.motivo}\n` +
+                  `Monto: $${montoPago.toLocaleString()}\n` +
+                  `Saldo restante: $${saldo.toLocaleString()}`);
         }
               
     } catch (error) {
@@ -306,6 +324,7 @@ function actualizarTodo() {
     actualizarEstadisticas();
     actualizarTablaPrestamos();
     actualizarTablaPagos();
+    actualizarSelectClientesPago();
     actualizarSelectPrestamos();
     actualizarGraficos();
 }
@@ -491,6 +510,117 @@ function actualizarSelectPrestamos() {
         `;
     });
 }
+// ============ NUEVAS FUNCIONES PARA SELECTOR DE PAGOS ============
+
+function actualizarSelectClientesPago() {
+    const select = document.getElementById('selectClientePago');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">Seleccionar cliente...</option>';
+    
+    if (isLoading) {
+        select.innerHTML += '<option value="" disabled>Cargando...</option>';
+        return;
+    }
+    
+    // Obtener clientes únicos con préstamos activos
+    const clientesUnicos = [...new Set(
+        prestamos
+            .filter(p => p.estado === 'activo')
+            .map(p => p.cliente)
+    )].sort();
+    
+    if (clientesUnicos.length === 0) {
+        select.innerHTML += '<option value="" disabled>No hay clientes con préstamos activos</option>';
+        return;
+    }
+    
+    clientesUnicos.forEach(cliente => {
+        const prestamosCliente = prestamos.filter(p => p.cliente === cliente && p.estado === 'activo');
+        select.innerHTML += `
+            <option value="${cliente.replace(/"/g, '&quot;')}">
+                ${cliente} (${prestamosCliente.length} préstamos activos)
+            </option>
+        `;
+    });
+}
+
+function actualizarSelectPrestamosPorCliente(clienteSeleccionado) {
+    const select = document.getElementById('selectPrestamo');
+    const infoDiv = document.getElementById('infoPrestamo');
+    
+    if (!select) return;
+    
+    // Limpiar
+    select.innerHTML = '<option value="">Seleccionar préstamo...</option>';
+    select.disabled = true;
+    
+    // Ocultar info
+    if (infoDiv) infoDiv.style.display = 'none';
+    
+    if (!clienteSeleccionado) {
+        select.innerHTML = '<option value="">Primero selecciona un cliente...</option>';
+        return;
+    }
+    
+    // Habilitar selector
+    select.disabled = false;
+    
+    // Filtrar préstamos activos del cliente
+    const prestamosCliente = prestamos.filter(p => 
+        p.cliente === clienteSeleccionado && p.estado === 'activo'
+    );
+    
+    if (prestamosCliente.length === 0) {
+        select.innerHTML = '<option value="">No hay préstamos activos</option>';
+        return;
+    }
+    
+    prestamosCliente.forEach(prestamo => {
+        const saldo = calcularSaldoRestante(prestamo.id);
+        select.innerHTML += `
+            <option value="${prestamo.id}">
+                ${prestamo.motivo} - Saldo: $${saldo.toLocaleString()} | Cuota: $${prestamo.cuotaMensual.toLocaleString()}
+            </option>
+        `;
+    });
+}
+
+function mostrarInfoPrestamo(prestamoId) {
+    const infoDiv = document.getElementById('infoPrestamo');
+    if (!infoDiv) return;
+    
+    if (!prestamoId) {
+        infoDiv.style.display = 'none';
+        return;
+    }
+    
+    const prestamo = prestamos.find(p => p.id === prestamoId);
+    if (!prestamo) {
+        infoDiv.style.display = 'none';
+        return;
+    }
+    
+    const saldo = calcularSaldoRestante(prestamoId);
+    
+    document.getElementById('infoCuota').textContent = `$${prestamo.cuotaMensual.toLocaleString()}`;
+    document.getElementById('infoSaldo').textContent = `$${parseFloat(saldo).toLocaleString()}`;
+    infoDiv.style.display = 'block';
+}
+
+// ============ EVENTOS DE LOS SELECTORES DE PAGO ============
+
+// Cuando se selecciona un cliente
+document.getElementById('selectClientePago').addEventListener('change', function() {
+    const clienteSeleccionado = this.value;
+    actualizarSelectPrestamosPorCliente(clienteSeleccionado);
+});
+
+// Cuando se selecciona un préstamo específico
+document.getElementById('selectPrestamo').addEventListener('change', function() {
+    const prestamoId = this.value;
+    mostrarInfoPrestamo(prestamoId);
+});
 
 // ============ FUNCIONES DE ACCIÓN ============
 function verDetalle(id) {
