@@ -416,6 +416,10 @@ function actualizarTablaPrestamos() {
                                 title="PDF completo del cliente">
                             <i class="bi bi-file-earmark-pdf"></i>
                         </button>
+                        <button class="btn btn-amortizacion" onclick="mostrarAmortizacion('${prestamo.id}')" 
+                                title="Tabla de Amortización">
+                            <i class="bi bi-table"></i>
+                        </button>
                         <button class="btn btn-outline-danger" onclick="eliminarPrestamo('${prestamo.id}')" 
                                 title="Eliminar">
                             <i class="bi bi-trash"></i>
@@ -1333,6 +1337,221 @@ function mostrarEstadoConexion() {
     
     document.body.appendChild(conexionDiv);
 }
+// ============ TABLA DE AMORTIZACIÓN ============
+
+function mostrarAmortizacion(prestamoId) {
+    const prestamo = prestamos.find(p => p.id === prestamoId);
+    if (!prestamo) {
+        alert('❌ Préstamo no encontrado');
+        return;
+    }
+    
+    const pagosPrestamo = pagos.filter(p => p.prestamoId === prestamoId);
+    const totalPagado = pagosPrestamo.reduce((sum, p) => sum + p.monto, 0);
+    const saldoRestante = parseFloat(calcularSaldoRestante(prestamoId));
+    
+    // Generar tabla de amortización
+    const cuotas = generarTablaAmortizacion(prestamo, pagosPrestamo);
+    
+    const container = document.getElementById('amortizacionContainer');
+    container.innerHTML = crearHTMLAmortizacion(prestamo, cuotas, totalPagado, saldoRestante);
+    
+    document.getElementById('amortizacionOverlay').classList.add('activo');
+}
+
+function generarTablaAmortizacion(prestamo, pagosPrestamo) {
+    const cuotas = [];
+    const fechaInicio = new Date(prestamo.fechaInicio + 'T00:00:00');
+    const cuotaMensual = prestamo.cuotaMensual;
+    const interesMensual = prestamo.interes / 100 / 12;
+    let saldoCapital = prestamo.monto;
+    
+    for (let i = 0; i < prestamo.plazo; i++) {
+        const fechaCuota = new Date(fechaInicio);
+        fechaCuota.setMonth(fechaCuota.getMonth() + i + 1);
+        
+        const interes = saldoCapital * interesMensual;
+        const amortizacion = cuotaMensual - interes;
+        saldoCapital -= amortizacion;
+        
+        if (saldoCapital < 0) saldoCapital = 0;
+        
+        // Verificar si esta cuota fue pagada
+        const pagosEnFecha = pagosPrestamo.filter(p => {
+            const fechaPago = new Date(p.fecha + 'T00:00:00');
+            const fechaLimite = new Date(fechaCuota);
+            fechaLimite.setMonth(fechaLimite.getMonth() - 1);
+            return fechaPago >= fechaLimite && fechaPago <= fechaCuota;
+        });
+        
+        const montoPagado = pagosEnFecha.reduce((sum, p) => sum + p.monto, 0);
+        
+        let estado = 'pendiente';
+        if (montoPagado >= cuotaMensual) {
+            estado = 'pagado';
+        } else if (montoPagado > 0) {
+            estado = 'parcial';
+        }
+        
+        // Determinar si es futura
+        const hoy = new Date();
+        const esFutura = fechaCuota > hoy;
+        
+        cuotas.push({
+            numero: i + 1,
+            fecha: fechaCuota.toISOString().split('T')[0],
+            cuota: cuotaMensual,
+            interes: interes,
+            amortizacion: amortizacion,
+            saldoCapital: saldoCapital,
+            montoPagado: montoPagado,
+            estado: esFutura ? 'futura' : estado
+        });
+    }
+    
+    return cuotas;
+}
+
+function crearHTMLAmortizacion(prestamo, cuotas, totalPagado, saldoRestante) {
+    let filasHTML = '';
+    
+    cuotas.forEach(cuota => {
+        let claseFila = '';
+        let iconoEstado = '';
+        
+        switch(cuota.estado) {
+            case 'pagado':
+                claseFila = 'cuota-pagada';
+                iconoEstado = '✅';
+                break;
+            case 'parcial':
+                claseFila = 'cuota-pendiente';
+                iconoEstado = '⚠️';
+                break;
+            case 'pendiente':
+                claseFila = 'cuota-pendiente';
+                iconoEstado = '⏳';
+                break;
+            case 'futura':
+                claseFila = 'cuota-futura';
+                iconoEstado = '📅';
+                break;
+        }
+        
+        filasHTML += `
+            <tr class="${claseFila}">
+                <td>${iconoEstado} ${cuota.numero}</td>
+                <td>${formatearFecha(cuota.fecha)}</td>
+                <td>$${cuota.cuota.toLocaleString()}</td>
+                <td>$${cuota.interes.toLocaleString()}</td>
+                <td>$${cuota.amortizacion.toLocaleString()}</td>
+                <td>$${cuota.saldoCapital.toLocaleString()}</td>
+                <td>$${cuota.montoPagado.toLocaleString()}</td>
+                <td>${cuota.estado === 'pagado' ? 'Pagado' : cuota.estado === 'parcial' ? 'Parcial' : cuota.estado === 'futura' ? 'Futura' : 'Pendiente'}</td>
+            </tr>
+        `;
+    });
+    
+    const interesTotal = prestamo.monto * (prestamo.interes / 100) * (prestamo.plazo / 12);
+    const totalPagar = prestamo.monto + interesTotal;
+    const porcentajePagado = ((totalPagado / totalPagar) * 100).toFixed(1);
+    
+    return `
+        <div class="amortizacion-header">
+            <h4>📊 Tabla de Amortización</h4>
+            <small>${prestamo.cliente} - ${prestamo.motivo}</small>
+        </div>
+        
+        <div class="amortizacion-body">
+            <div class="row mb-3">
+                <div class="col-md-3 col-6 mb-2">
+                    <small class="text-muted">Monto:</small><br>
+                    <strong>$${prestamo.monto.toLocaleString()}</strong>
+                </div>
+                <div class="col-md-3 col-6 mb-2">
+                    <small class="text-muted">Interés:</small><br>
+                    <strong>${prestamo.interes}% anual</strong>
+                </div>
+                <div class="col-md-3 col-6 mb-2">
+                    <small class="text-muted">Plazo:</small><br>
+                    <strong>${prestamo.plazo} meses</strong>
+                </div>
+                <div class="col-md-3 col-6 mb-2">
+                    <small class="text-muted">Cuota mensual:</small><br>
+                    <strong>$${prestamo.cuotaMensual.toLocaleString()}</strong>
+                </div>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Fecha</th>
+                            <th>Cuota</th>
+                            <th>Interés</th>
+                            <th>Amortización</th>
+                            <th>Saldo Capital</th>
+                            <th>Pagado</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filasHTML}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="alert alert-info mt-3">
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>Total a pagar:</strong> $${totalPagar.toLocaleString()}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Total pagado:</strong> $${totalPagado.toLocaleString()}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Saldo restante:</strong> $${saldoRestante.toLocaleString()}
+                        <br>
+                        <small>Progreso: ${porcentajePagado}%</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="amortizacion-footer">
+            <button class="btn-cerrar-amortizacion" onclick="cerrarAmortizacion()">
+                <i class="bi bi-x-lg me-2"></i>Cerrar
+            </button>
+            <button class="btn-imprimir-amortizacion" onclick="imprimirAmortizacion()">
+                <i class="bi bi-printer me-2"></i>Imprimir
+            </button>
+        </div>
+    `;
+}
+
+function cerrarAmortizacion() {
+    document.getElementById('amortizacionOverlay').classList.remove('activo');
+}
+
+function imprimirAmortizacion() {
+    window.print();
+}
+
+// Cerrar con ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        cerrarAmortizacion();
+        cerrarTicket();
+    }
+});
+
+// Cerrar haciendo clic fuera
+document.getElementById('amortizacionOverlay').addEventListener('click', function(e) {
+    if (e.target === this) {
+        cerrarAmortizacion();
+    }
+});
 
 // ============ INICIALIZACIÓN ============
 document.addEventListener('DOMContentLoaded', function() {

@@ -7,6 +7,172 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
+        .amortizacion-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            overflow-y: auto;
+        }
+        .amortizacion-overlay.activo {
+            display: flex;
+        }
+
+        .amortizacion-container {
+            background: white;
+            width: 95%;
+            max-width: 900px;
+            max-height: 90vh;
+            margin: 20px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .amortizacion-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .amortizacion-header h4 {
+            margin: 0;
+            font-size: 1.3rem;
+        }
+
+        .amortizacion-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .amortizacion-body .table {
+            font-size: 0.85rem;
+            margin: 0;
+        }
+
+        .amortizacion-body .table th {
+            background: #1e293b;
+            color: white;
+            font-size: 0.8rem;
+            padding: 10px 8px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .amortizacion-body .table td {
+            padding: 8px;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+
+        .amortizacion-body .table .cuota-pagada {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .amortizacion-body .table .cuota-pendiente {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .amortizacion-body .table .cuota-futura {
+            color: #64748b;
+        }
+
+        .amortizacion-footer {
+            padding: 15px 20px;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-cerrar-amortizacion {
+            background: white;
+            color: #64748b;
+            border: 2px solid #e2e8f0;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-cerrar-amortizacion:hover {
+            background: #f1f5f9;
+        }
+
+        .btn-imprimir-amortizacion {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-imprimir-amortizacion:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-amortizacion {
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-amortizacion:hover {
+            background: #7c3aed;
+            transform: scale(1.05);
+        }
+
+            /* Estilos de impresión para amortización */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .amortizacion-overlay, .amortizacion-overlay * {
+                visibility: visible;
+            }
+            .amortizacion-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                background: white;
+            }
+            .amortizacion-container {
+                box-shadow: none;
+                margin: 0;
+                width: 100%;
+                max-width: 100%;
+            }
+            .amortizacion-footer {
+                display: none;
+            }
+        }
         :root {
             --primary: #2563eb;
             --success: #10b981;
@@ -774,6 +940,12 @@
 <div class="ticket-overlay" id="ticketOverlay">
     <div class="ticket-container" id="ticketContainer">
         <!-- El ticket se genera dinámicamente -->
+    </div>
+</div>
+<!-- Modal de Tabla de Amortización -->
+<div class="amortizacion-overlay" id="amortizacionOverlay">
+    <div class="amortizacion-container" id="amortizacionContainer">
+        <!-- Se llena dinámicamente -->
     </div>
 </div>
 </body>
